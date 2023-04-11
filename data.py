@@ -14,17 +14,24 @@ import pandas as pd
 
 def create_merged_df (item : str, use_cache=True) -> pd.DataFrame:
     """Create a merged dataframe of item listings from eBay and Poshmark
-    with columns 'name', 'cost', 'condition'"""
-    ebay_df = get_ebay_df(item, use_cache)
+    sorted by price (least expensive first)"""
+    file_name = item + ".csv"
+    if use_cache and path.exists(file_name):
+        return pd.read_csv(file_name)
 
-    posh_df = get_poshmark_df(item, use_cache)
+    ebay_df = get_ebay_df(item)
+    posh_df = get_poshmark_df(item)
+
     if (ebay_df.columns != posh_df.columns).any():
         print("Columns don't match")
         print("Ebay columns:", ebay_df.columns)
         print(ebay_df.dtypes)
         print("Posh columns:", posh_df.columns)
         print(posh_df.dtypes)
+    
     df = pd.concat([ebay_df, posh_df], ignore_index=True)
+    df = df.sort_values(by=['price'])
+    df.to_csv(file_name, index=False)
     return df
 
 def get_soup(url, print_soup=False):
@@ -47,13 +54,9 @@ def print_df_info(df):
     print(f"First {num_rows} rows:")
     print(df.head(num_rows))
 
-def get_ebay_df(item : str, use_cache : bool=True):
+def get_ebay_df(item : str):
     """Get the eBay dataframe for a given item"""
     url = "https://www.ebay.com/sch/" + item
-    file_name = "ebay " + item + ".csv"
-
-    if use_cache and path.isfile(file_name):
-        return pd.read_csv(file_name)
 
     soup = get_soup(url)
     tagscost = soup.findAll(class_ = "s-item__price")
@@ -69,12 +72,7 @@ def get_ebay_df(item : str, use_cache : bool=True):
         price = price.strip()
         price = price.split()[0]
         price = price.strip().strip('$')
-        try:
-            price = float(price)
-        except ValueError:
-            print("Error converting price to float")
-            print(price)
-            exit(-1)
+        price = float(price)
         prices.append(price)
         conditions.append(secondhand[i].text)
 
@@ -84,8 +82,6 @@ def get_ebay_df(item : str, use_cache : bool=True):
     df["url"] = "https://www.ebay.com"
     df["img"] = "https://commons.wikimedia.org/wiki/File:Blue_Tshirt.jpg"
     df["condition"] = conditions
-
-    df.to_csv(file_name, index=False)
 
     return df
 
@@ -102,13 +98,9 @@ def get_attributes(soup_obj):
 
     return (title, price, url, img)
 
-def get_poshmark_df (item : str, use_cache : bool=True) -> pd.DataFrame:
+def get_poshmark_df (item : str) -> pd.DataFrame:
     """Get the Poshmark dataframe for a given item"""
     url = "https://poshmark.com/search?query=" + item + "%20&type=listings&src=dir"
-    file_name = "poshmark " + item + ".csv"
-
-    if use_cache and path.isfile(file_name):
-        return pd.read_csv(file_name)
     
     soup = get_soup(url)
     item_container = soup.find_all('div', class_ = 'item__details')
@@ -119,8 +111,8 @@ def get_poshmark_df (item : str, use_cache : bool=True) -> pd.DataFrame:
     for item in item_container:
         price = item.find('span', class_ = 'p--t--1 fw--bold').text
         price = price.strip().strip('$')
+        price = float(price)
         prices.append(price)
-
         link = item.find('a')
         url = "https://poshmark.com" + link["href"]
         urls.append(url)
@@ -135,8 +127,6 @@ def get_poshmark_df (item : str, use_cache : bool=True) -> pd.DataFrame:
     df["url"] = urls
     df["img"] = "https://commons.wikimedia.org/wiki/File:Blue_Tshirt.jpg"
     df["condition"] = "unknown"
-
-    df.to_csv(file_name, index=False)
 
     return df
 

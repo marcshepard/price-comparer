@@ -63,13 +63,17 @@ def get_ebay_df(item : str):
     soup = get_soup(url)
     tagscost = soup.findAll(class_ = "s-item__price")
     tagsname = soup.findAll(class_ = "s-item__title")
+    tagsimage = soup.findAll(class_ = "s-item__image")
     secondhand = soup.findAll(class_ = "SECONDARY_INFO")
 
     items = []
     prices = []
     conditions = []
+    images = []
+    urls = []
     for i in range (1, len(tagsname)):
-        items.append(tagsname[i].text)
+        item = tagsname[i].text
+        items.append(item)
         price = tagscost[i].text
         price = price.strip()
         price = price.split()[0]
@@ -77,12 +81,18 @@ def get_ebay_df(item : str):
         price = float(price)
         prices.append(price)
         conditions.append(secondhand[i].text)
+        img = tagsimage[i].find('img')["src"]
+        images.append(img)
+        url = tagsimage[i].find('a')["href"]
+        if "?" in url:
+            url = url.split("?")[0]
+        urls.append(url)
 
     df = pd.DataFrame()
     df["item"] = items
     df["price"] = prices
-    df["url"] = "https://www.ebay.com"
-    df["img"] = "https://upload.wikimedia.org/wikipedia/commons/2/24/Blue_Tshirt.jpg"
+    df["url"] = urls
+    df["img"] = images
     df["condition"] = conditions
 
     return df

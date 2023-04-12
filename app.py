@@ -26,7 +26,7 @@ class Image(tk.Label):
     Uses a temp file to store the image, disables SSL cert
     verification on URL download to work around Python bug"""
     def __init__(self, parent, width=100, height=100):
-        super().__init__(parent)
+        super().__init__(parent, width=width, height=height)
         self.url = None
         self.width = width
         self.height = height
@@ -40,9 +40,9 @@ class Image(tk.Label):
         if self.url is None:
             return
         
-        url_file_extension = self.url.split(".")[-1]
-        if url_file_extension is None or len(url_file_extension) == 0:
-            url_file_extension = "jpg"
+        url_file_extension = "jpg"
+        if "." in self.url:
+            url_file_extension = self.url.split(".")[-1]
         tmp_file = "temp." + url_file_extension
 
         try:
@@ -52,7 +52,9 @@ class Image(tk.Label):
             image = PIL.Image.open(tmp_file)
             image = image.resize((self.width, self.height))
             image = ImageTk.PhotoImage(image)
+            self.config(image=image)
             self.image = image
+            self.update()
         except:
             print(f"Error loading image from {self.url}")
 
@@ -67,7 +69,7 @@ class App(tk.Tk):
         # Create a frame to hold everything
         frame = tk.Frame(self)
 
-        # Create a label
+        # Controls to search for an item (e.g, hoodie, shirt, etc.)
         pad = 10
         label = tk.Label(frame, text="Item")
         label.grid(row=0, column=0, padx=pad, pady=pad, sticky="w")
@@ -79,17 +81,14 @@ class App(tk.Tk):
         button.grid(row=0, column=2, padx=pad, pady=pad, sticky="e")
         self.search_button = button
         
-        # Create a scrollable grid
-        df = data.create_merged_df(default_search)
-        self.df = df
-
-        # Header labels
+        # Header labels for listbox of items
         label = tk.Label(frame, text="price")
         label.grid(row=3, column=0, sticky="w")
         label = tk.Label(frame, text="item")
         label.grid(row=3, column=1, columnspan=2, sticky="nsew")
 
-        # Add a listbox to hold the rows, and a scrollbar to scroll it
+        # Scrollable listbox of items returned by the search
+        self.df = data.create_merged_df(default_search)
         scrollbar = tk.Scrollbar(frame, orient="vertical")
         scrollbar.grid(row=4, column=3, sticky="nsw")
         list = tk.Listbox(frame, yscrollcommand = scrollbar.set)
@@ -97,14 +96,13 @@ class App(tk.Tk):
         list.bind("<<ListboxSelect>>", lambda event: self.select())
         scrollbar.config(command=list.yview)
         self.list = list
-        self.fill_listbox(df)
+        self.fill_listbox(self.df)
 
-        # Add the image and hyperlink of the selected item in the list
+        # Details of currenly selected item; image + hyperlink
         self.image = Image(frame)
         self.image.grid(row=1, column=0, columnspan=3, padx=pad, pady=pad, sticky="nsew")
         self.link = Hyperlink(frame, "link", "https://www.google.com")
         self.link.grid(row=2, column=0, columnspan=3, padx=pad, pady=pad, sticky="nsew")
-
         self.select(0)
 
         # Pack the frame
@@ -118,7 +116,6 @@ class App(tk.Tk):
         if len(item) > 0:
             df = data.create_merged_df(item)
             self.fill_listbox(df)
-        # resize window width to fit the longest item
         self.search_button.config(state="normal", relief="raised")
 
     def fill_listbox(self, df):
@@ -134,6 +131,7 @@ class App(tk.Tk):
             text += str(df.iloc[row, item_col_ix])
             max_len = max(max_len, len(text))
             self.list.insert("end", text)
+
         # set the listbox selection to the first item, if any
         if len(df) > 0:
             self.list.selection_set(0)
@@ -142,6 +140,7 @@ class App(tk.Tk):
         self.list.config(width=max_len + 8)
 
     def select(self, ix = None):
+        """Select an item from the listbox"""
         if ix is None:
             ix = self.list.curselection()[0]
         df = self.df

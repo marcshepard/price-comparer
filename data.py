@@ -1,9 +1,10 @@
 """
 data.py - get data from eBay and Poshmark and merge into a single dataframe
 
-Main method: create_merged_df(item : str, use_cache=True) -> pd.DataFrame
+Main method: create_merged_df(item : str) -> pd.DataFrame
 item - what you are searching for
-use_cache - if True, use cached data if it exists, otherwise get new data
+this method will cache the results in a file named item.csv and use that
+(instead of a call to the web sites) if it is less than 1 day old
 """
 
 import requests
@@ -12,11 +13,12 @@ from sys import exit
 from os import path
 import pandas as pd
 
-def create_merged_df (item : str, use_cache=True) -> pd.DataFrame:
+def create_merged_df (item : str) -> pd.DataFrame:
     """Create a merged dataframe of item listings from eBay and Poshmark
     sorted by price (least expensive first)"""
     file_name = item + ".csv"
-    if use_cache and path.exists(file_name):
+    # Used cached results if they exist and are less than 1 day old
+    if path.exists(file_name) and path.getmtime(file_name) > 86400:
         return pd.read_csv(file_name)
 
     ebay_df = get_ebay_df(item)
@@ -80,7 +82,7 @@ def get_ebay_df(item : str):
     df["item"] = items
     df["price"] = prices
     df["url"] = "https://www.ebay.com"
-    df["img"] = "https://commons.wikimedia.org/wiki/File:Blue_Tshirt.jpg"
+    df["img"] = "https://upload.wikimedia.org/wikipedia/commons/2/24/Blue_Tshirt.jpg"
     df["condition"] = conditions
 
     return df
@@ -125,7 +127,7 @@ def get_poshmark_df (item : str) -> pd.DataFrame:
     df["item"] = items
     df["price"] = prices
     df["url"] = urls
-    df["img"] = "https://commons.wikimedia.org/wiki/File:Blue_Tshirt.jpg"
+    df["img"] = "https://upload.wikimedia.org/wikipedia/commons/2/24/Blue_Tshirt.jpg"
     df["condition"] = "unknown"
 
     return df

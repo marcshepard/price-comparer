@@ -8,7 +8,7 @@ import ssl
 
 # A control to display a hyperlink
 class Hyperlink(tk.Label):
-    def __init__(self, parent, text, url):
+    def __init__(self, parent, text = None, url = None):
         super().__init__(parent, fg="blue", cursor="hand2", font="Arial 9 underline")
         self.set_link(text, url)
         self.bind("<Button-1>", self._open_url)
@@ -101,7 +101,7 @@ class App(tk.Tk):
         # Details of currenly selected item; image + hyperlink
         self.image = Image(frame)
         self.image.grid(row=1, column=0, columnspan=3, padx=pad, pady=pad, sticky="nsew")
-        self.link = Hyperlink(frame, "link", "https://www.google.com")
+        self.link = Hyperlink(frame)
         self.link.grid(row=2, column=0, columnspan=3, padx=pad, pady=pad, sticky="nsew")
         self.select(0)
 

@@ -97,13 +97,14 @@ class App(tk.Tk):
         scrollbar.config(command=list.yview)
         self.list = list
         self.fill_listbox(self.df)
+        self.last_selection = 0
 
         # Details of currenly selected item; image + hyperlink
         self.image = Image(frame)
         self.image.grid(row=1, column=0, columnspan=3, padx=pad, pady=pad, sticky="nsew")
         self.link = Hyperlink(frame)
         self.link.grid(row=2, column=0, columnspan=3, padx=pad, pady=pad, sticky="nsew")
-        self.select(0)
+        self.select()
 
         # Pack the frame
         frame.pack(fill="both", expand=True)
@@ -139,11 +140,19 @@ class App(tk.Tk):
 
         self.list.config(width=max_len + 8)
 
-    def select(self, ix = None):
+    def select(self):
         """Select an item from the listbox"""
-        if ix is None:
-            ix = self.list.curselection()[0]
         df = self.df
+        if len(df) == 0:
+            return
+        
+        try:
+            self.last_selection = self.list.curselection()[0]
+        except:
+            if self.last_selection > len(df):
+                self.last_selection = 0
+            self.list.selection_set(self.last_selection)
+        ix = self.last_selection
         # Get the URL and item from self.df at row ix
         url = df.iloc[ix, df.columns.get_loc("url")]
         item = df.iloc[ix, df.columns.get_loc("item")]
